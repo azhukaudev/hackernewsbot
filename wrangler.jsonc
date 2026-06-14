@@ -8,4 +8,17 @@
 	},
 	"upload_source_maps": true,
 	"compatibility_flags": ["nodejs_compat"],
+
+	"triggers": {
+		"crons": [
+			"*/30 * * * *", // Triggers the scheduled() handler every 30 minutes
+		],
+	},
+
+	"kv_namespaces": [
+		{
+			"binding": "HN_KV",
+			"id": "279d6d6f603143d9836328e9e433fc46",
+		},
+	],
 }
