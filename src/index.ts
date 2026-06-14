@@ -1,7 +1,10 @@
 const HN_API_BASE_URL = 'https://hacker-news.firebaseio.com/v0';
 const MIN_SCORE_TO_POST = 100;
-const MAX_POSTED_IDS_RETAINED = 2000;
-const POSTED_IDS_KV_KEY = 'POSTED_STORY_IDS';
+// Each posted story is tracked as its own KV key that self-expires, so we never
+// re-post a story while it lingers on the top feed. HN ids only increase, so a
+// week is well beyond how long any story stays on the list.
+const POSTED_KEY_PREFIX = 'posted:';
+const POSTED_TTL_SECONDS = 60 * 60 * 24 * 7;
 
 interface HNStory {
 	id: number;
@@ -31,12 +34,10 @@ export default {
 
 async function publishNextTopStory(env: Env): Promise<void> {
 	const topStoryIds = await fetchTopStoryIds();
-	const postedStoryIds = await fetchPostedStoryIds(env);
-	const postedStoryIdSet = new Set(postedStoryIds);
 
 	let nextStoryId: number | null = null;
 	for (const storyId of topStoryIds) {
-		if (!postedStoryIdSet.has(storyId)) {
+		if (!(await hasBeenPosted(env, storyId))) {
 			nextStoryId = storyId;
 			break;
 		}
@@ -91,11 +92,7 @@ async function publishNextTopStory(env: Env): Promise<void> {
 		throw new Error(`Telegram API returned status ${telegramResponse.status}: ${errorBody}`);
 	}
 
-	postedStoryIds.push(nextStoryId);
-	if (postedStoryIds.length > MAX_POSTED_IDS_RETAINED) {
-		postedStoryIds.shift();
-	}
-	await env.HN_KV.put(POSTED_IDS_KV_KEY, JSON.stringify(postedStoryIds));
+	await markAsPosted(env, nextStoryId);
 
 	console.log(`Successfully posted new story: "${story.title}"`);
 }
@@ -113,12 +110,15 @@ async function fetchTopStoryIds(): Promise<number[]> {
 	}
 }
 
-async function fetchPostedStoryIds(env: Env): Promise<number[]> {
-	const postedStoryIds = await env.HN_KV.get<number[]>(POSTED_IDS_KV_KEY, 'json');
-	if (!postedStoryIds) {
-		return [];
-	}
-	return postedStoryIds;
+async function hasBeenPosted(env: Env, storyId: number): Promise<boolean> {
+	const marker = await env.HN_KV.get(`${POSTED_KEY_PREFIX}${storyId}`);
+	return marker !== null;
+}
+
+async function markAsPosted(env: Env, storyId: number): Promise<void> {
+	await env.HN_KV.put(`${POSTED_KEY_PREFIX}${storyId}`, '1', {
+		expirationTtl: POSTED_TTL_SECONDS,
+	});
 }
 
 async function fetchStoryById(id: number): Promise<HNStory | null> {
