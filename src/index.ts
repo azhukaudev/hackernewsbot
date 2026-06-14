@@ -10,7 +10,7 @@ interface HNStory {
 	id: number;
 	title: string;
 	url?: string;
-	descendants: number;
+	descendants?: number;
 	score: number;
 }
 
@@ -65,11 +65,18 @@ async function publishNextTopStory(env: Env): Promise<void> {
 	// Ask HN / Show HN text posts and job posts have no `url` — fall back to the HN discussion link.
 	const previewUrl = story.url ?? discussionUrl;
 
+	const commentCount = story.descendants ?? 0;
+	const stats = [
+		`🚀 ${story.score} ${plural(story.score, 'point')}`,
+		`💬 ${commentCount} ${plural(commentCount, 'comment')}`,
+	];
+
 	let messageHtml = `<b>${escapeHtml(story.title)}</b>\n\n`;
+	messageHtml += `${stats.join(' · ')}\n\n`;
 	if (story.url) {
-		messageHtml += `<b>Read:</b> <a href="${previewUrl}">${previewUrl}</a>\n`;
+		messageHtml += `📖 <b>Read:</b> <a href="${story.url}">${escapeHtml(extractDomain(story.url))}</a>\n`;
 	}
-	messageHtml += `<b>Discussion:</b> <a href="${discussionUrl}">${discussionUrl}</a>`;
+	messageHtml += `💬 <b>Discussion:</b> <a href="${discussionUrl}">news.ycombinator.com</a>`;
 
 	const sendMessageUrl = `https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/sendMessage`;
 	const telegramResponse = await fetch(sendMessageUrl, {
@@ -136,4 +143,16 @@ async function fetchStoryById(id: number): Promise<HNStory | null> {
 
 function escapeHtml(text: string): string {
 	return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+function plural(count: number, noun: string): string {
+	return count === 1 ? noun : `${noun}s`;
+}
+
+function extractDomain(url: string): string {
+	try {
+		return new URL(url).hostname.replace(/^www\./, '');
+	} catch {
+		return url;
+	}
 }
