@@ -35,29 +35,32 @@ export default {
 async function publishNextTopStory(env: Env): Promise<void> {
 	const topStoryIds = await fetchTopStoryIds();
 
-	let nextStoryId: number | null = null;
+	// Post the first unposted story that clears the score threshold, scanning
+	// past lower-scored ones near the top so they don't block the rest.
+	let story: HNStory | null = null;
 	for (const storyId of topStoryIds) {
-		if (!(await hasBeenPosted(env, storyId))) {
-			nextStoryId = storyId;
-			break;
+		if (await hasBeenPosted(env, storyId)) {
+			continue;
 		}
+
+		const candidate = await fetchStoryById(storyId);
+		if (!candidate) {
+			continue;
+		}
+
+		if (candidate.score < MIN_SCORE_TO_POST) {
+			console.log(
+				`Skipping: "${candidate.title}" only has ${candidate.score} points. Waiting for it to cross ${MIN_SCORE_TO_POST}.`,
+			);
+			continue;
+		}
+
+		story = candidate;
+		break;
 	}
 
-	if (nextStoryId === null) {
-		console.log('No new stories found in the current top feed.');
-		return;
-	}
-
-	const story = await fetchStoryById(nextStoryId);
 	if (!story) {
-		console.log('No story found for a provided id');
-		return;
-	}
-
-	if (story.score < MIN_SCORE_TO_POST) {
-		console.log(
-			`Skipping: "${story.title}" only has ${story.score} points. Waiting for it to cross ${MIN_SCORE_TO_POST}.`,
-		);
+		console.log('No new stories found in the current top feed.');
 		return;
 	}
 
@@ -99,7 +102,7 @@ async function publishNextTopStory(env: Env): Promise<void> {
 		throw new Error(`Telegram API returned status ${telegramResponse.status}: ${errorBody}`);
 	}
 
-	await markAsPosted(env, nextStoryId);
+	await markAsPosted(env, story.id);
 
 	console.log(`Successfully posted new story: "${story.title}"`);
 }
