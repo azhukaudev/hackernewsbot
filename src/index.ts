@@ -114,7 +114,7 @@ async function fetchTopStoryIds(): Promise<number[]> {
 }
 
 async function fetchPostedStoryIds(env: Env): Promise<number[]> {
-	const postedStoryIds = await env.HN_KV.get<number[]>(POSTED_IDS_KV_KEY);
+	const postedStoryIds = await env.HN_KV.get<number[]>(POSTED_IDS_KV_KEY, 'json');
 	if (!postedStoryIds) {
 		return [];
 	}
