@@ -1,7 +1,7 @@
 import { discussionUrl, HNStory } from './hacker-news';
 
 /** Renders a story as the HTML message body sent to Telegram. */
-export function formatStoryMessage(story: HNStory): string {
+export function formatStoryMessage(story: HNStory, summary?: string[] | null): string {
 	const commentCount = story.descendants ?? 0;
 	const stats = [
 		`🚀 ${story.score} ${plural(story.score, 'point')}`,
@@ -9,6 +9,13 @@ export function formatStoryMessage(story: HNStory): string {
 	];
 
 	const lines = [`<b>${escapeHtml(story.title)}</b>`, '', stats.join(' · '), ''];
+
+	if (summary && summary.length > 0) {
+		for (const bullet of summary) {
+			lines.push(`- ${escapeHtml(bullet)}`);
+		}
+		lines.push('');
+	}
 
 	if (story.url) {
 		lines.push(`📖 <b>Read:</b> <a href="${story.url}">${escapeHtml(extractDomain(story.url))}</a>`);

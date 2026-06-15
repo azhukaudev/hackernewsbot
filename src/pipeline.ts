@@ -4,6 +4,7 @@ import { MIN_SCORE_TO_POST } from './config';
 import { formatStoryMessage, storyPreviewUrl } from './format';
 import { fetchStoryById, fetchTopStoryIds, HNStory } from './hacker-news';
 import { PostedStore } from './posted-store';
+import { summarizeStory } from './summarize';
 import { TelegramClient } from './telegram';
 
 /** Posts the next eligible top HN story to Telegram, if there is one. */
@@ -16,9 +17,18 @@ export async function publishNextTopStory(): Promise<void> {
 		return;
 	}
 
-	const telegram = new TelegramClient(env.TELEGRAM_BOT_TOKEN, env.TELEGRAM_CHAT_ID);
-	await telegram.sendMessage(formatStoryMessage(story), storyPreviewUrl(story));
+	// Claim the story before the slow summarize + send, so an overlapping or
+	// retried cron run can't pick the same story and post it twice.
 	await posted.add(story.id);
+
+	try {
+		const summary = await summarizeStory(story);
+		const telegram = new TelegramClient(env.TELEGRAM_BOT_TOKEN, env.TELEGRAM_CHAT_ID);
+		await telegram.sendMessage(formatStoryMessage(story, summary), storyPreviewUrl(story));
+	} catch (error) {
+		await posted.remove(story.id); // Release the claim so a later run retries.
+		throw error;
+	}
 
 	console.log(`Successfully posted new story: "${story.title}"`);
 }

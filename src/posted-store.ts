@@ -13,6 +13,10 @@ export class PostedStore {
 		await this.kv.put(this.key(storyId), '1', { expirationTtl: POSTED_TTL_SECONDS });
 	}
 
+	async remove(storyId: number): Promise<void> {
+		await this.kv.delete(this.key(storyId));
+	}
+
 	private key(storyId: number): string {
 		return `${POSTED_KEY_PREFIX}${storyId}`;
 	}
