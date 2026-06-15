@@ -23,7 +23,7 @@ export async function publishNextTopStory(): Promise<void> {
 
 	try {
 		const summary = await summarizeStory(story);
-		const telegram = new TelegramClient(env.TELEGRAM_BOT_TOKEN, env.TELEGRAM_CHAT_ID);
+		const telegram = new TelegramClient();
 		await telegram.sendMessage(formatStoryMessage(story, summary), storyPreviewUrl(story));
 	} catch (error) {
 		await posted.remove(story.id); // Release the claim so a later run retries.
