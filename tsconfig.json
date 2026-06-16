@@ -40,5 +40,7 @@
 			"./worker-configuration.d.ts",
 			"node"
 		]
-	}
+	},
+	/* Tests use the `cloudflare:test` types and are type-checked via test/tsconfig.json. */
+	"exclude": ["test"]
 }

@@ -1,0 +1,11 @@
+{
+	"extends": "../tsconfig.json",
+	"compilerOptions": {
+		"moduleResolution": "bundler",
+		"types": ["@cloudflare/vitest-pool-workers/types"]
+	},
+	"include": ["./**/*.ts", "../worker-configuration.d.ts"],
+	// Override the base config's `exclude: ["test"]`, which would otherwise
+	// exclude the very files this project is meant to type-check.
+	"exclude": []
+}
