@@ -4,7 +4,6 @@ export interface HNStory {
 	id: number;
 	title: string;
 	url?: string;
-	descendants?: number;
 	score: number;
 }
 
