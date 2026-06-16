@@ -12,9 +12,9 @@ export function formatStoryMessage(story: HNStory, summary?: string[] | null): s
 	}
 
 	if (story.url) {
-		lines.push(`📖 <b>Read:</b> <a href="${story.url}">${escapeHtml(extractDomain(story.url))}</a>`);
+		lines.push(`<b>Read:</b> <a href="${story.url}">${escapeHtml(extractDomain(story.url))}</a>`);
 	}
-	lines.push(`💬 <b>Discussion:</b> <a href="${discussionUrl(story.id)}">news.ycombinator.com</a>`);
+	lines.push(`<b>Discussion:</b> <a href="${discussionUrl(story.id)}">news.ycombinator.com</a>`);
 
 	return lines.join('\n');
 }
